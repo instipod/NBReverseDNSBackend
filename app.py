@@ -4,12 +4,15 @@ from flask import Flask
 import json
 import requests
 import re
+import os
 
 app = Flask(__name__)
 
-NETBOX_PATH = "http://127.0.0.1:8000/api"
-DOMAIN_SUFFIX = "network.local"
-NETBOX_HEADERS = {'Accept': 'application/json', 'Authorization': 'Token 0123456789abcdef0123456789abcdef01234567'}
+NETBOX_PATH = os.environ.get("NETBOX_BASE_URL")
+DOMAIN_SUFFIX = os.environ.get("DOMAIN_SUFFIX")
+API_TOKEN = os.environ.get("NETBOX_API_TOKEN")
+UNKNOWN_DOMAIN = os.environ.get("UNKNOWN_DOMAIN")
+NETBOX_HEADERS = {'Accept': 'application/json', 'Authorization': f"Token {API_TOKEN}"}
 
 @app.route("/getAllDomains")
 def all_domains():
@@ -27,7 +30,7 @@ def get_domain_metadata(domain):
     return json.dumps({"result": []})
 
 @app.route("/lookup/<string:host>/<path:method>")
-def hello_world(host, method):
+def lookup_dns(host, method):
     results = []
 
     if method == "SOA" or method == "ANY":
@@ -62,7 +65,7 @@ def get_device_name_from_id(id):
             display_name = re.sub(r'[^A-za-z0-9\-]*', '', display_name)
             return f"{display_name}.{site_slug}.{DOMAIN_SUFFIX}".lower()
     else:
-        return "unknown.unknown"
+        return UNKNOWN_DOMAIN
 
 def get_device_text_from_id(id):
     http_request = requests.get(f"{NETBOX_PATH}/dcim/devices/{id}/?format=json", headers=NETBOX_HEADERS)
@@ -108,9 +111,9 @@ def get_ip_hostname_from_netbox(ip):
                 description = re.sub(r'[^A-za-z0-9\-]*', '', description)
                 return f"{description}.unknown.{DOMAIN_SUFFIX}".lower()
         else:
-            return "unknown.unknown"
+            return UNKNOWN_DOMAIN
     else:
-        return "unknown.unknown"
+        return UNKNOWN_DOMAIN
 
 def get_ip_details_from_ip(ip):
     http_request = requests.get(f"{NETBOX_PATH}/ipam/ip-addresses/?format=json&address={ip}", headers=NETBOX_HEADERS)
