@@ -1,0 +1,12 @@
+FROM alpine
+
+RUN apk add --update --no-cache pdns pdns-backend-remote && rm -rf /var/cache/apk/*
+COPY pdns.conf /etc/pdns/pdns.conf
+
+EXPOSE 53/udp 53/tcp
+
+CMD pdns_server \
+        --loglevel=${PDNS_LOG_LEVEL:-5} \
+        --webserver-allow-from=${PDNS_WEBSERVER_ALLOWED_FROM:-"0.0.0.0/0"} \
+        --webserver-password=${PDNS_WEBSERVER_PASSWORD:-""} \
+        --api-key=${PDNS_API_KEY}
