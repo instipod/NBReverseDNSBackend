@@ -10,6 +10,11 @@ services:
       - 53:53/udp
     networks:
       - rdns
+    depends_on:
+      - rdnsbackend
+    logging:
+      options:
+        max-size: 10m
   rdnsbackend:
     build:
       context: .
@@ -18,9 +23,12 @@ services:
       - rdns
     environment:
       - DOMAIN_SUFFIX=network.local
-      - NETBOX_BASE_URL="http://netbox/api"
-      - NETBOX_API_TOKEN="1234"
-      - UNKNOWN_DOMAIN="unknown.unknown"
+      - NETBOX_BASE_URL=http://netbox/api
+      - NETBOX_API_TOKEN=1234
+      - UNKNOWN_DOMAIN=unknown.unknown
+    logging:
+      options:
+        max-size: 10m
 
 networks:
   rdns:

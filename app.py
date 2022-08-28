@@ -12,7 +12,23 @@ NETBOX_PATH = os.environ.get("NETBOX_BASE_URL")
 DOMAIN_SUFFIX = os.environ.get("DOMAIN_SUFFIX")
 API_TOKEN = os.environ.get("NETBOX_API_TOKEN")
 UNKNOWN_DOMAIN = os.environ.get("UNKNOWN_DOMAIN")
+NETBOX_TIMEOUT = int(os.environ.get("NETBOX_TIMEOUT"))
 NETBOX_HEADERS = {'Accept': 'application/json', 'Authorization': f"Token {API_TOKEN}"}
+
+@app.route("/healthcheck")
+def health_check():
+    try:
+        http_request = requests.get(f"{NETBOX_PATH}/?format=json", headers=NETBOX_HEADERS, timeout=(NETBOX_TIMEOUT/1000))
+    except requests.exceptions.RequestException as e:
+        return "{'ok': false, 'error': 'Can not reach NetBox server.'}", 500
+
+    if http_request.status_code == 403:
+        return "{'ok': false, 'error': 'Authentication failed against NetBox server.'}", 403
+    elif http_request.status_code == 200:
+        return "{'ok': true, 'error': ''}", 200
+    else:
+        error_code = http_request.status_code
+        return "{'ok': false, 'error': 'NetBox returned a non-success error code: " + str(error_code) + ".'}", 500
 
 @app.route("/getAllDomains")
 def all_domains():
@@ -37,12 +53,15 @@ def lookup_dns(host, method):
         results.append({'ttl': 60, 'auth': 1, 'qname': host, 'qtype': 'SOA',
          'content': 'dynamically-generated.local. nobody.local. 1 3600 3600 3600 60'})
 
-    #100.0.168.192.in-addr.arpa.
     request_parts = host.split(".")
     if (len(request_parts) == 7 or len(request_parts) == 6) and "in-addr.arpa" in host:
-        #ipv4 reverse lookup
+        #request for ipv4 reverse lookup
         ip_address = request_parts[3] + "." + request_parts[2] + "." + request_parts[1] + "." + request_parts[0]
         ip_host = get_ip_hostname_from_netbox(ip_address)
+        if ip_host is None:
+            print("Error: Netbox server is not available, declining DNS lookup.")
+            return "{'result': []}", 500
+        
         ip_details = get_ip_details_from_ip(ip_address)
 
         results.append({'ttl': 60, 'auth': 1, 'qname': host, 'qtype': 'PTR', 'content': ip_host})
@@ -51,7 +70,11 @@ def lookup_dns(host, method):
     return json.dumps({'result': results})
 
 def get_device_name_from_id(id):
-    http_request = requests.get(f"{NETBOX_PATH}/dcim/devices/{id}/?format=json", headers=NETBOX_HEADERS)
+    try:
+        http_request = requests.get(f"{NETBOX_PATH}/dcim/devices/{id}/?format=json", headers=NETBOX_HEADERS, timeout=(NETBOX_TIMEOUT/1000))
+    except requests.exceptions.RequestException as e:
+        return UNKNOWN_DOMAIN
+    
     if http_request.status_code == 200:
         data = json.loads(http_request.content)
 
@@ -68,7 +91,11 @@ def get_device_name_from_id(id):
         return UNKNOWN_DOMAIN
 
 def get_device_text_from_id(id):
-    http_request = requests.get(f"{NETBOX_PATH}/dcim/devices/{id}/?format=json", headers=NETBOX_HEADERS)
+    try:
+        http_request = requests.get(f"{NETBOX_PATH}/dcim/devices/{id}/?format=json", headers=NETBOX_HEADERS, timeout=(NETBOX_TIMEOUT/1000))
+    except requests.exceptions.RequestException as e:
+        return "Unknown"
+
     if http_request.status_code == 200:
         data = json.loads(http_request.content)
 
@@ -82,7 +109,11 @@ def get_device_text_from_id(id):
         return "Unknown"
 
 def get_ip_hostname_from_netbox(ip):
-    http_request = requests.get(f"{NETBOX_PATH}/ipam/ip-addresses/?format=json&address={ip}", headers=NETBOX_HEADERS)
+    try:
+        http_request = requests.get(f"{NETBOX_PATH}/ipam/ip-addresses/?format=json&address={ip}", headers=NETBOX_HEADERS, timeout=(NETBOX_TIMEOUT/1000))
+    except requests.exceptions.RequestException as e:
+        return None
+    
     if http_request.status_code == 200:
         data = json.loads(http_request.content)
         if 'count' in data.keys() and data['count'] is not None and data['count'] == 1:
@@ -116,7 +147,11 @@ def get_ip_hostname_from_netbox(ip):
         return UNKNOWN_DOMAIN
 
 def get_ip_details_from_ip(ip):
-    http_request = requests.get(f"{NETBOX_PATH}/ipam/ip-addresses/?format=json&address={ip}", headers=NETBOX_HEADERS)
+    try:
+        http_request = requests.get(f"{NETBOX_PATH}/ipam/ip-addresses/?format=json&address={ip}", headers=NETBOX_HEADERS, timeout=(NETBOX_TIMEOUT/1000))
+    except requests.exceptions.RequestException as e:
+        return "Unknown"
+
     if http_request.status_code == 200:
         data = json.loads(http_request.content)
         if 'count' in data.keys() and data['count'] is not None and data['count'] == 1:

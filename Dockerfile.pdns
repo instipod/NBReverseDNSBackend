@@ -1,6 +1,6 @@
 FROM alpine
 
-RUN apk add --update --no-cache pdns pdns-backend-remote && rm -rf /var/cache/apk/*
+RUN apk add --update --no-cache pdns pdns-backend-remote bind-tools && rm -rf /var/cache/apk/*
 COPY pdns.conf /etc/pdns/pdns.conf
 
 EXPOSE 53/udp 53/tcp
@@ -10,3 +10,6 @@ CMD pdns_server \
         --webserver-allow-from=${PDNS_WEBSERVER_ALLOWED_FROM:-"0.0.0.0/0"} \
         --webserver-password=${PDNS_WEBSERVER_PASSWORD:-""} \
         --api-key=${PDNS_API_KEY}
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=2 --start-period=10s \
+    CMD dig SOA healthcheck. @127.0.0.1 | grep REFUSED
