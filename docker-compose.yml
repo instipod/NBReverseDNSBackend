@@ -23,4 +23,4 @@ services:
       - UNKNOWN_DOMAIN="unknown.unknown"
 
 networks:
-  - rdns
+  rdns:
