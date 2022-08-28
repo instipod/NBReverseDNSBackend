@@ -3,4 +3,9 @@ FROM tiangolo/meinheld-gunicorn-flask:python3.9
 RUN pip --no-cache-dir --upgrade install requests flask
 COPY app.py /app/main.py
 
+ENV DOMAIN_SUFFIX=network.local
+ENV NETBOX_BASE_URL="http://netbox/api"
+ENV NETBOX_API_TOKEN=0123456789abcdef0123456789abcdef01234567
+ENV UNKNOWN_DOMAIN=unknown.unknown
+
 EXPOSE 80/tcp
