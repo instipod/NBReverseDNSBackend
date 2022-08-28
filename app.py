@@ -99,6 +99,7 @@ def get_ip_hostname_from_netbox(ip):
                 interface_name = interface_name.replace("vlan", "v")
                 interface_name = interface_name.replace("management", "m")
                 interface_name = interface_name.replace("serial", "s")
+                interface_name = interface_name.replace("lan", "e")
 
                 device_host = get_device_name_from_id(device_id)
                 return f"{interface_name}--{device_host}".lower()
