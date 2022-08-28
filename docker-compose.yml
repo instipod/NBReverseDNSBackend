@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  powerdns:
+    build:
+      context: .
+      dockerfile: Dockerfile.pdns
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+    networks:
+      - rdns
+  rdnsbackend:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    networks:
+      - rdns
+    environment:
+      - DOMAIN_SUFFIX=network.local
+      - NETBOX_BASE_URL="http://netbox/api"
+      - NETBOX_API_TOKEN="1234"
+      - UNKNOWN_DOMAIN="unknown.unknown"
+
+networks:
+  - rdns
