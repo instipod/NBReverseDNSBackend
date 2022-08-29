@@ -118,7 +118,7 @@ def get_ip_hostname_from_netbox(ip):
         data = json.loads(http_request.content)
         if 'count' in data.keys() and data['count'] is not None and data['count'] == 1:
             result = data['results'][0]
-            if result['assigned_object_type'] == "dcim.interface" and result['assigned_object'] is not None:
+            if result['assigned_object_type'] == "dcim.interface" and result['assigned_object'] is not None and result['assigned_object']['display'] is not None:
                 interface_name = result['assigned_object']['display']
                 device_id = result['assigned_object']['device']['id']
 
